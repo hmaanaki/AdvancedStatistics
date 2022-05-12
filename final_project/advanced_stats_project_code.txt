@@ -1,0 +1,62 @@
+setwd("C:\\Users\\hmaanaki\\Desktop\\Advanced Statistics\\final_project")
+myT <- read.table("saliva_heart_failure.txt",header=TRUE,row.names=1, sep = '\t')
+
+groups <- c(rep("Control",12), rep("Heart Failure",12))
+myT_short = data.frame(matrix(ncol = 24,nrow = 0))
+colnames(myT_short) <- groups
+factors = factor(groups)
+
+pVals <- vector()
+
+index = 1
+index2 = 1
+biomarkers <- vector()
+sig_biomarkers_names <- vector()
+significant_biomakers <- data.frame(matrix(ncol = 2, nrow = 0))
+colnames(significant_biomakers) <- c('p-value', 'index')
+
+for(i in 2:nrow(myT)){
+  myData <- as.numeric(myT[i,])
+  if (sum(is.na(myData)) >= 1){
+    next
+  }
+  biomarkers[index2] <- row.names(myT)[i]
+  index2 = index2 + 1
+  myT_short <- rbind(myT_short, myData)
+  myChangingLm <- lm(myData ~ factors, x=TRUE)
+  pVals[i] <- anova(myChangingLm)$"Pr(>F)"[1]
+  
+  if(pVals[i] < 0.05){
+    significant_biomakers[nrow(significant_biomakers) + 1,] <- c(round(pVals[i],5), i)
+    sig_biomarkers_names[index] <- row.names(myT)[i]
+    index = index + 1
+  }
+}
+
+hist(pVals, breaks = 20)
+
+rownames(significant_biomakers)<- sig_biomarkers_names
+par(mfrow=c(3,2)) 
+boxplot(as.numeric(myT[significant_biomakers[1,2],])~factors, ylab = "Concentration (然)",
+        xlab = "Factors", main = c(sig_biomarkers_names[1]," p-val =", as.character(significant_biomakers[1,1])))
+boxplot(as.numeric(myT[significant_biomakers[2,2],])~factors, ylab = "Concentration (然)",
+        xlab = "Factors", main = c(sig_biomarkers_names[2]," p-val =", as.character(significant_biomakers[2,1])))
+boxplot(as.numeric(myT[significant_biomakers[3,2],])~factors, ylab = "Concentration (然)",
+        xlab = "Factors", main = c(sig_biomarkers_names[3]," p-val =", as.character(significant_biomakers[3,1])))
+boxplot(as.numeric(myT[significant_biomakers[4,2],])~factors, ylab = "Concentration (然)",
+        xlab = "Factors", main = c(sig_biomarkers_names[4]," p-val =", as.character(significant_biomakers[4,1])))
+boxplot(as.numeric(myT[significant_biomakers[5,2],])~factors, ylab = "Concentration (然)",
+        xlab = "Factors", main = c(sig_biomarkers_names[5]," p-val =", as.character(significant_biomakers[5,1])))
+
+
+
+# PCA
+colnames(myT_short) <- groups
+modified_df <- as.data.frame(t(myT_short))
+#modified_df$patient_type <- c(rep("c",12), rep("hf", 12))
+myPCOA <- princomp(modified_df)
+pc1 <- myPCOA$scores[,1]
+pc2 <- myPCOA$scores[,2]
+
+plot(pc1, pc2, col=ifelse(grepl("Control",row.names(modified_df), fixed = TRUE), "red", "black"))
+legend(x = "bottomright", legend=c("Control", "Heart Failure"), fill=c("red", "black"), cex=0.8)
